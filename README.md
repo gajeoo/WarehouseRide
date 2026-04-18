@@ -20,7 +20,7 @@ A production-ready full-stack web app template.
 
 ## Quick Start
 
-Your project is already set up. To start developing:
+project is already set up. To start developing:
 
 ```bash
 # Start Convex backend (watches for changes)
@@ -70,7 +70,7 @@ The `test` command handles the Vite server lifecycle automatically:
 
 Note: The Convex backend is always running in the cloud after running the sync command — only the frontend server needs to be started locally.
 
-Your app is automatically built and deployed when you use the deploy tool.
+App is automatically built and deployed when you use the deploy tool.
 
 ### Taking Screenshots
 
