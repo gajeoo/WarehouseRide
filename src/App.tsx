@@ -34,6 +34,7 @@ import {
   AdminSettingsPage,
   AdminEmployeesPage,
   ActivatePage,
+  CheckoutSuccessPage,
 } from "./pages";
 
 function App() {
@@ -63,6 +64,7 @@ function App() {
           {/* Activation page (public, no auth required) */}
           <Route element={<PublicLayout />}>
             <Route path="/activate" element={<ActivatePage />} />
+            <Route path="/checkout/success" element={<CheckoutSuccessPage />} />
           </Route>
 
           {/* Customer portal (authenticated) */}

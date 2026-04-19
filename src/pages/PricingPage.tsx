@@ -1,10 +1,25 @@
-import { ArrowRight, CheckCircle2, Info } from "lucide-react";
+import { ArrowRight, CheckCircle2, Info, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useState } from "react";
+import { useAction } from "convex/react";
+import { api } from "../../convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "sonner";
 
-const plans = [
+type PlanKey = "daily" | "weekly" | "biweekly" | "monthly";
+
+const plans: Array<{
+  key: PlanKey;
+  name: string;
+  price: string;
+  period: string;
+  desc: string;
+  features: string[];
+  highlight: boolean;
+}> = [
   {
+    key: "daily",
     name: "Daily",
     price: "$17–$22",
     period: "per day",
@@ -13,6 +28,7 @@ const plans = [
     highlight: false,
   },
   {
+    key: "weekly",
     name: "Weekly",
     price: "$50",
     period: "per week",
@@ -21,6 +37,7 @@ const plans = [
     highlight: false,
   },
   {
+    key: "biweekly",
     name: "Bi-Weekly",
     price: "$155–$175",
     period: "every 2 weeks",
@@ -29,6 +46,7 @@ const plans = [
     highlight: false,
   },
   {
+    key: "monthly",
     name: "Monthly",
     price: "$280–$350",
     period: "per month",
@@ -39,6 +57,26 @@ const plans = [
 ];
 
 export function PricingPage() {
+  const [loadingPlan, setLoadingPlan] = useState<PlanKey | null>(null);
+  const createCheckout = useAction(api.stripe.createCheckoutSession);
+
+  const handleSubscribe = async (planKey: PlanKey) => {
+    setLoadingPlan(planKey);
+    try {
+      const result = await createCheckout({ plan: planKey });
+      if (result.error) {
+        toast.error(result.error);
+      } else if (result.url) {
+        window.location.href = result.url;
+      }
+    } catch {
+      // If Stripe is not configured, fallback to quote form
+      toast.info("Online payments coming soon! Please request a quote for now.");
+    } finally {
+      setLoadingPlan(null);
+    }
+  };
+
   return (
     <div className="py-16">
       <div className="container">
@@ -77,9 +115,26 @@ export function PricingPage() {
                     </li>
                   ))}
                 </ul>
-                <Button className="w-full mt-6" variant={plan.highlight ? "default" : "outline"} asChild>
-                  <Link to="/get-quote">Get a Quote</Link>
-                </Button>
+                <div className="flex flex-col gap-2 mt-6">
+                  <Button
+                    className="w-full"
+                    variant={plan.highlight ? "default" : "outline"}
+                    disabled={loadingPlan !== null}
+                    onClick={() => handleSubscribe(plan.key)}
+                  >
+                    {loadingPlan === plan.key ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      "Subscribe Now"
+                    )}
+                  </Button>
+                  <Button className="w-full" variant="ghost" size="sm" asChild>
+                    <Link to="/get-quote">Get Custom Quote</Link>
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}

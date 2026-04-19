@@ -32,3 +32,6 @@ export { AdminEmployeesPage } from "./AdminEmployeesPage";
 
 // Activation page
 export { ActivatePage } from "./ActivatePage";
+
+// Checkout
+export { CheckoutSuccessPage } from "./CheckoutSuccessPage";

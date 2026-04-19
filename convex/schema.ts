@@ -204,6 +204,44 @@ const schema = defineSchema({
     .index("by_customerId", ["customerId"])
     .index("by_scheduledFor", ["scheduledFor"]),
 
+  // Stripe subscriptions
+  subscriptions: defineTable({
+    userId: v.id("users"),
+    stripeCustomerId: v.string(),
+    stripeSubscriptionId: v.string(),
+    stripePriceId: v.string(),
+    plan: v.string(), // daily, weekly, biweekly, monthly
+    status: v.string(), // active, past_due, canceled, trialing, etc.
+    currentPeriodStart: v.number(),
+    currentPeriodEnd: v.number(),
+    cancelAtPeriodEnd: v.boolean(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_stripeSubscriptionId", ["stripeSubscriptionId"])
+    .index("by_stripeCustomerId", ["stripeCustomerId"]),
+
+  // Stripe checkout sessions
+  checkoutSessions: defineTable({
+    userId: v.id("users"),
+    stripeSessionId: v.string(),
+    plan: v.string(),
+    status: v.union(v.literal("pending"), v.literal("completed"), v.literal("expired")),
+  })
+    .index("by_stripeSessionId", ["stripeSessionId"])
+    .index("by_userId", ["userId"]),
+
+  // One-time payments (daily plan)
+  payments: defineTable({
+    userId: v.id("users"),
+    stripeCustomerId: v.string(),
+    stripePaymentIntentId: v.string(),
+    plan: v.string(),
+    amount: v.number(),
+    status: v.string(),
+    paidAt: v.number(),
+  })
+    .index("by_userId", ["userId"]),
+
   // NEW: In-app notifications
   notifications: defineTable({
     customerId: v.id("customers"),

@@ -1,16 +1,46 @@
-import { useQuery } from "convex/react";
-import { FileText } from "lucide-react";
+import { useAction, useQuery } from "convex/react";
+import { CreditCard, ExternalLink, FileText, Loader2 } from "lucide-react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { api } from "../../convex/_generated/api";
+import { toast } from "sonner";
 
 export function InvoicesPage() {
   const invoices = useQuery(api.invoices.listMine);
   const profile = useQuery(api.customers.getMyProfile);
+  const subscription = useQuery(api.stripe.getMySubscription);
+  const createPortal = useAction(api.stripe.createPortalSession);
+  const [portalLoading, setPortalLoading] = useState(false);
 
   const paid = invoices?.filter((i) => i.status === "paid").reduce((sum, inv) => sum + inv.amount, 0) || 0;
   const pending = invoices?.filter((i) => i.status === "pending").reduce((sum, inv) => sum + inv.amount, 0) || 0;
+
+  const handleManageBilling = async () => {
+    setPortalLoading(true);
+    try {
+      const result = await createPortal();
+      if (result.error) {
+        toast.error(result.error);
+      } else if (result.url) {
+        window.open(result.url, "_blank");
+      }
+    } catch {
+      toast.error("Unable to open billing portal. Please try again.");
+    } finally {
+      setPortalLoading(false);
+    }
+  };
+
+  const formatDate = (timestamp: number) => {
+    return new Date(timestamp).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -18,6 +48,43 @@ export function InvoicesPage() {
         <h1 className="text-2xl font-bold">Invoices & Billing</h1>
         <p className="text-muted-foreground">Your payment history and subscription details.</p>
       </div>
+
+      {/* Active Subscription Card */}
+      {subscription && subscription.status === "active" && (
+        <Card className="bg-primary/5 border-primary/20">
+          <CardContent className="pt-5 pb-5">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-3">
+                <CreditCard className="size-8 text-primary" />
+                <div>
+                  <div className="font-semibold capitalize">
+                    {subscription.plan} Plan — Active
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Next billing: {formatDate(subscription.currentPeriodEnd)}
+                    {subscription.cancelAtPeriodEnd && " (cancels at end of period)"}
+                  </div>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleManageBilling}
+                disabled={portalLoading}
+              >
+                {portalLoading ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <>
+                    Manage Billing
+                    <ExternalLink className="size-3.5" />
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Summary cards */}
       <div className="grid sm:grid-cols-3 gap-4">
