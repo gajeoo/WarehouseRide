@@ -1,19 +1,15 @@
 import { useQuery } from "convex/react";
-import { Bus, Clock, MapPin, Navigation } from "lucide-react";
+import { Bus, Clock, EyeOff, MapPin, Navigation } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { api } from "../../convex/_generated/api";
 
 export function TrackVanPage() {
-  const profile = useQuery(api.customers.getMyProfile);
   const myRoute = useQuery(api.routes.getMyRoute);
-  const vehicles = useQuery(api.vehicles.list);
+  const locationData = useQuery(api.vehicles.getMyVehicleLocation);
 
-  const myVehicle = vehicles?.find(
-    (v) => profile?.vehicleId && v._id === profile.vehicleId
-  ) || vehicles?.find(
-    (v) => myRoute?.vehicleId && v._id === myRoute.vehicleId
-  );
+  const myVehicle = locationData?.vehicle;
+  const locationShared = locationData?.locationShared ?? false;
 
   return (
     <div className="space-y-6">
@@ -22,51 +18,68 @@ export function TrackVanPage() {
         <p className="text-muted-foreground">Real-time location of your assigned vehicle.</p>
       </div>
 
+      {/* Location sharing notice */}
+      {myVehicle && !locationShared && (
+        <div className="flex items-center gap-3 bg-muted/50 border border-border rounded-lg px-4 py-3">
+          <EyeOff className="size-5 text-muted-foreground shrink-0" />
+          <div>
+            <p className="text-sm font-medium">Location sharing is currently off</p>
+            <p className="text-xs text-muted-foreground">Your admin has not enabled location sharing for this vehicle. Vehicle info is still shown below.</p>
+          </div>
+        </div>
+      )}
+
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Map area */}
         <div className="lg:col-span-2">
           <Card className="bg-card/50 border-border overflow-hidden">
             <div className="aspect-[16/10] bg-gradient-to-br from-[#0a1628] to-[#0f2440] relative flex items-center justify-center">
-              {/* Simulated map with route */}
-              <div className="absolute inset-0 opacity-20">
-                <svg width="100%" height="100%" viewBox="0 0 800 500">
-                  {/* Grid lines */}
-                  {Array.from({ length: 20 }).map((_, i) => (
-                    <line key={`h-${i}`} x1="0" y1={i * 25} x2="800" y2={i * 25} stroke="white" strokeWidth="0.3" opacity="0.15" />
-                  ))}
-                  {Array.from({ length: 32 }).map((_, i) => (
-                    <line key={`v-${i}`} x1={i * 25} y1="0" x2={i * 25} y2="500" stroke="white" strokeWidth="0.3" opacity="0.15" />
-                  ))}
-                  {/* Route path */}
-                  <path d="M 150 350 Q 250 300 350 250 Q 450 200 550 180 Q 620 170 650 150" fill="none" stroke="#f97316" strokeWidth="3" strokeDasharray="8 4" />
-                  {/* Stops */}
-                  <circle cx="150" cy="350" r="8" fill="#22c55e" opacity="0.9" />
-                  <circle cx="350" cy="250" r="6" fill="#f97316" opacity="0.9" />
-                  <circle cx="550" cy="180" r="6" fill="#f97316" opacity="0.9" />
-                  <circle cx="650" cy="150" r="8" fill="#ef4444" opacity="0.9" />
-                  {/* Van position (animated) */}
-                  <circle cx="420" cy="220" r="10" fill="#f97316" opacity="0.3">
-                    <animate attributeName="r" values="10;18;10" dur="2s" repeatCount="indefinite" />
-                  </circle>
-                  <circle cx="420" cy="220" r="6" fill="#f97316" />
-                </svg>
-              </div>
+              {locationShared ? (
+                <>
+                  {/* Simulated map with route */}
+                  <div className="absolute inset-0 opacity-20">
+                    <svg width="100%" height="100%" viewBox="0 0 800 500">
+                      {Array.from({ length: 20 }).map((_, i) => (
+                        <line key={`h-${i}`} x1="0" y1={i * 25} x2="800" y2={i * 25} stroke="white" strokeWidth="0.3" opacity="0.15" />
+                      ))}
+                      {Array.from({ length: 32 }).map((_, i) => (
+                        <line key={`v-${i}`} x1={i * 25} y1="0" x2={i * 25} y2="500" stroke="white" strokeWidth="0.3" opacity="0.15" />
+                      ))}
+                      <path d="M 150 350 Q 250 300 350 250 Q 450 200 550 180 Q 620 170 650 150" fill="none" stroke="#f97316" strokeWidth="3" strokeDasharray="8 4" />
+                      <circle cx="150" cy="350" r="8" fill="#22c55e" opacity="0.9" />
+                      <circle cx="350" cy="250" r="6" fill="#f97316" opacity="0.9" />
+                      <circle cx="550" cy="180" r="6" fill="#f97316" opacity="0.9" />
+                      <circle cx="650" cy="150" r="8" fill="#ef4444" opacity="0.9" />
+                      <circle cx="420" cy="220" r="10" fill="#f97316" opacity="0.3">
+                        <animate attributeName="r" values="10;18;10" dur="2s" repeatCount="indefinite" />
+                      </circle>
+                      <circle cx="420" cy="220" r="6" fill="#f97316" />
+                    </svg>
+                  </div>
 
-              {/* Labels */}
-              <div className="absolute top-4 left-4 bg-card/80 backdrop-blur-sm rounded-lg px-3 py-2 text-xs">
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="size-2 rounded-full bg-success" />
-                  <span>Start: {myRoute?.origin || "Baltimore"}</span>
+                  <div className="absolute top-4 left-4 bg-card/80 backdrop-blur-sm rounded-lg px-3 py-2 text-xs">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="size-2 rounded-full bg-success" />
+                      <span>Start: {myRoute?.origin || "Baltimore"}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="size-2 rounded-full bg-destructive" />
+                      <span>End: {myRoute?.destination || "Warehouse"}</span>
+                    </div>
+                  </div>
+                  <div className="absolute bottom-4 right-4 bg-card/80 backdrop-blur-sm rounded-lg px-3 py-2 text-xs font-medium flex items-center gap-2">
+                    <Navigation className="size-3.5 text-primary" />
+                    Live Tracking
+                  </div>
+                </>
+              ) : (
+                <div className="text-center space-y-3">
+                  <EyeOff className="size-12 mx-auto text-muted-foreground/30" />
+                  <p className="text-sm text-muted-foreground/60">
+                    Location sharing is not enabled for this vehicle
+                  </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="size-2 rounded-full bg-destructive" />
-                  <span>End: {myRoute?.destination || "Warehouse"}</span>
-                </div>
-              </div>
-              <div className="absolute bottom-4 right-4 bg-card/80 backdrop-blur-sm rounded-lg px-3 py-2 text-xs font-medium flex items-center gap-2">
-                <Navigation className="size-3.5 text-primary" />
-                Live Tracking
-              </div>
+              )}
             </div>
           </Card>
         </div>
@@ -103,6 +116,12 @@ export function TrackVanPage() {
                     <span className="text-sm text-muted-foreground">Status</span>
                     <Badge variant={myVehicle.status === "active" ? "default" : "secondary"} className="capitalize text-xs">
                       {myVehicle.status}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Location</span>
+                    <Badge variant={locationShared ? "default" : "secondary"} className="text-xs">
+                      {locationShared ? "Shared" : "Hidden"}
                     </Badge>
                   </div>
                 </>

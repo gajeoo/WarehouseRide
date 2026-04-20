@@ -30,6 +30,12 @@ export { AdminChatPage } from "./AdminChatPage";
 export { AdminSettingsPage } from "./AdminSettingsPage";
 export { AdminEmployeesPage } from "./AdminEmployeesPage";
 
+// Driver pages
+export { DriverDashboardPage } from "./DriverDashboardPage";
+
+// Admin driver management
+export { AdminDriversPage } from "./AdminDriversPage";
+
 // Activation page
 export { ActivatePage } from "./ActivatePage";
 

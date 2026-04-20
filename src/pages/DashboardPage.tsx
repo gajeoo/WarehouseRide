@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "convex/react";
 import { Bus, Calendar, Clock, MapPin, Route } from "lucide-react";
 import { useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "../../convex/_generated/api";
@@ -11,12 +11,20 @@ export function DashboardPage() {
   const myRoute = useQuery(api.routes.getMyRoute);
   const invoices = useQuery(api.invoices.listMine);
   const ensureProfile = useMutation(api.customers.ensureCustomerProfile);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (profile === null) {
       ensureProfile();
     }
   }, [profile, ensureProfile]);
+
+  // Redirect drivers to their dedicated portal
+  useEffect(() => {
+    if (profile?.role === "driver") {
+      navigate("/driver", { replace: true });
+    }
+  }, [profile?.role, navigate]);
 
   const now = new Date();
   const hour = now.getHours();

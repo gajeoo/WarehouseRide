@@ -137,7 +137,8 @@ export function ActivatePage() {
       await completeActivation({ token });
       setStep("done");
       toast.success("Account activated! Welcome to WarehouseRide!");
-      setTimeout(() => navigate("/dashboard"), 2000);
+      const redirectTo = tokenData?.role === "driver" ? "/driver" : "/dashboard";
+      setTimeout(() => navigate(redirectTo), 2000);
     } catch (err: any) {
       setError(err?.message || "Failed to complete activation.");
       setStep("form");
@@ -176,7 +177,7 @@ export function ActivatePage() {
             </div>
             <h2 className="text-xl font-semibold mb-2">Account Activated!</h2>
             <p className="text-muted-foreground mb-4">
-              Welcome, {tokenData.name}! Your account is ready. Redirecting to your dashboard...
+              Welcome, {tokenData.name}! Your account is ready. Redirecting...
             </p>
             <Loader2 className="size-5 animate-spin text-primary mx-auto" />
           </CardContent>
@@ -252,6 +253,11 @@ export function ActivatePage() {
             {tokenData.role === "warehouse_manager" && (
               <span className="block mt-1 text-primary font-medium">
                 You're being set up as a Warehouse Manager.
+              </span>
+            )}
+            {tokenData.role === "driver" && (
+              <span className="block mt-1 text-primary font-medium">
+                You're being set up as a Driver.
               </span>
             )}
           </CardDescription>

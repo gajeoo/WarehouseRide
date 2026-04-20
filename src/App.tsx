@@ -1,9 +1,11 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { AppLayout } from "./components/AppLayout";
 import { AdminLayout } from "./components/AdminLayout";
+import { DriverLayout } from "./components/DriverLayout";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AdminRoute } from "./components/AdminRoute";
+import { DriverRoute } from "./components/DriverRoute";
 import { PublicLayout } from "./components/PublicLayout";
 import { PublicOnlyRoute } from "./components/PublicOnlyRoute";
 import { Toaster } from "./components/ui/sonner";
@@ -33,6 +35,8 @@ import {
   AdminChatPage,
   AdminSettingsPage,
   AdminEmployeesPage,
+  AdminDriversPage,
+  DriverDashboardPage,
   ActivatePage,
   CheckoutSuccessPage,
 } from "./pages";
@@ -78,6 +82,15 @@ function App() {
             </Route>
           </Route>
 
+          {/* Driver portal (authenticated + driver role) */}
+          <Route element={<ProtectedRoute />}>
+            <Route element={<DriverRoute />}>
+              <Route element={<DriverLayout />}>
+                <Route path="/driver" element={<DriverDashboardPage />} />
+              </Route>
+            </Route>
+          </Route>
+
           {/* Admin dashboard (authenticated + admin) */}
           <Route element={<ProtectedRoute />}>
             <Route element={<AdminRoute />}>
@@ -85,6 +98,7 @@ function App() {
                 <Route path="/admin" element={<AdminDashboardPage />} />
                 <Route path="/admin/customers" element={<AdminCustomersPage />} />
                 <Route path="/admin/employees" element={<AdminEmployeesPage />} />
+                <Route path="/admin/drivers" element={<AdminDriversPage />} />
                 <Route path="/admin/fleet" element={<AdminFleetPage />} />
                 <Route path="/admin/quotes" element={<AdminQuotesPage />} />
                 <Route path="/admin/chat" element={<AdminChatPage />} />
