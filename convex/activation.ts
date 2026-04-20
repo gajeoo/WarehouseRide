@@ -100,7 +100,7 @@ export const completeActivation = mutation({
       email: tokenDoc.email,
       plan: (tokenDoc.plan as "monthly" | "biweekly" | "weekly" | "daily" | "none") || "none",
       status: "active",
-      role: tokenDoc.role,
+      role: tokenDoc.role as "customer" | "warehouse_manager" | "employee" | "driver",
       workplace: tokenDoc.workplace,
       workplaceAddress: tokenDoc.workplaceAddress,
       routeId: tokenDoc.routeId,
@@ -132,6 +132,7 @@ export const adminInviteCustomer = action({
       v.literal("customer"),
       v.literal("warehouse_manager"),
       v.literal("employee"),
+      v.literal("driver"),
     ),
     plan: v.optional(v.string()),
     workplace: v.optional(v.string()),
@@ -173,7 +174,7 @@ export const adminInviteCustomer = action({
       return { success: true, message: "Account created but email could not be sent (email not configured)." };
     }
 
-    const roleLabel = args.role === "warehouse_manager" ? "Warehouse Manager" : args.role === "employee" ? "Employee" : "Customer";
+    const roleLabel = args.role === "warehouse_manager" ? "Warehouse Manager" : args.role === "employee" ? "Employee" : args.role === "driver" ? "Driver" : "Customer";
 
     const response = await fetch(`${apiUrl}/api/viktor-spaces/send-email`, {
       method: "POST",
@@ -237,6 +238,7 @@ export const createActivationToken = internalMutation({
       v.literal("customer"),
       v.literal("warehouse_manager"),
       v.literal("employee"),
+      v.literal("driver"),
     ),
     plan: v.optional(v.string()),
     workplace: v.optional(v.string()),

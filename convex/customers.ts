@@ -116,6 +116,7 @@ export const adminUpdate = mutation({
       v.literal("customer"),
       v.literal("warehouse_manager"),
       v.literal("employee"),
+      v.literal("driver"),
     )),
   },
   returns: v.null(),
@@ -160,6 +161,25 @@ export const ensureCustomerProfile = mutation({
   },
 });
 
+// Count drivers
+export const driverStats = query({
+  args: {},
+  returns: v.any(),
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return null;
+    const caller = await ctx.db
+      .query("customers")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .unique();
+    if (!caller?.isAdmin) return null;
+    const all = await ctx.db.query("customers").collect();
+    const drivers = all.filter((c) => c.role === "driver");
+    const activeDrivers = drivers.filter((d) => d.status === "active");
+    return { total: drivers.length, active: activeDrivers.length };
+  },
+});
+
 export const stats = query({
   args: {},
   returns: v.any(),
@@ -197,6 +217,164 @@ export const remove = mutation({
       .unique();
     if (!caller?.isAdmin) throw new Error("Not admin");
     await ctx.db.delete(args.customerId);
+    return null;
+  },
+});
+
+// ========== DRIVER FEATURES ==========
+
+// List all drivers (admin only)
+export const listDrivers = query({
+  args: {},
+  returns: v.any(),
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
+    const caller = await ctx.db
+      .query("customers")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .unique();
+    if (!caller?.isAdmin) return [];
+    const all = await ctx.db.query("customers").collect();
+    return all.filter((c) => c.role === "driver");
+  },
+});
+
+// Get riders assigned to a driver (via route)
+export const getMyRiders = query({
+  args: {},
+  returns: v.any(),
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
+    const profile = await ctx.db
+      .query("customers")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .unique();
+    if (!profile || profile.role !== "driver") return [];
+
+    // Find routes assigned to this driver
+    const routes = await ctx.db.query("routes").collect();
+    const myRoutes = routes.filter((r) => r.assignedDriverId === profile._id);
+    const routeIds = new Set(myRoutes.map((r) => r._id));
+
+    // Find customers on those routes
+    const allCustomers = await ctx.db.query("customers").collect();
+    const riders = allCustomers.filter((c) =>
+      c.routeId && routeIds.has(c.routeId) && c.role === "customer" && c.status === "active"
+    );
+
+    // Enrich with route info
+    return riders.map((r) => {
+      const route = myRoutes.find((rt) => rt._id === r.routeId);
+      return {
+        ...r,
+        routeName: route?.name || "Unassigned",
+        routeOrigin: route?.origin || "",
+        routeDestination: route?.destination || "",
+        departureTime: route?.departureTime || "",
+        returnTime: route?.returnTime || "",
+        routeStops: route?.stops || [],
+      };
+    });
+  },
+});
+
+// Get driver's assigned routes and vehicles
+export const getDriverAssignments = query({
+  args: {},
+  returns: v.any(),
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return null;
+    const profile = await ctx.db
+      .query("customers")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .unique();
+    if (!profile || profile.role !== "driver") return null;
+
+    const routes = await ctx.db.query("routes").collect();
+    const myRoutes = routes.filter((r) => r.assignedDriverId === profile._id);
+
+    const vehicles = await ctx.db.query("vehicles").collect();
+    const myVehicles = vehicles.filter((v) => v.assignedDriverId === profile._id);
+
+    // Count riders per route
+    const allCustomers = await ctx.db.query("customers").collect();
+    const routeStats = myRoutes.map((route) => {
+      const ridersOnRoute = allCustomers.filter(
+        (c) => c.routeId === route._id && c.role === "customer" && c.status === "active"
+      );
+      return {
+        ...route,
+        riderCount: ridersOnRoute.length,
+      };
+    });
+
+    return {
+      routes: routeStats,
+      vehicles: myVehicles,
+      totalRiders: routeStats.reduce((sum, r) => sum + r.riderCount, 0),
+    };
+  },
+});
+
+// Admin: Update driver features
+export const updateDriverFeatures = mutation({
+  args: {
+    customerId: v.id("customers"),
+    allowedFeatures: v.array(v.string()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    const caller = await ctx.db
+      .query("customers")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .unique();
+    if (!caller?.isAdmin) throw new Error("Not admin");
+    await ctx.db.patch(args.customerId, { allowedFeatures: args.allowedFeatures });
+    return null;
+  },
+});
+
+// Admin: Assign driver to route
+export const assignDriverToRoute = mutation({
+  args: {
+    routeId: v.id("routes"),
+    driverId: v.optional(v.id("customers")),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    const caller = await ctx.db
+      .query("customers")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .unique();
+    if (!caller?.isAdmin) throw new Error("Not admin");
+    await ctx.db.patch(args.routeId, { assignedDriverId: args.driverId });
+    return null;
+  },
+});
+
+// Admin: Assign driver to vehicle
+export const assignDriverToVehicle = mutation({
+  args: {
+    vehicleId: v.id("vehicles"),
+    driverId: v.optional(v.id("customers")),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    const caller = await ctx.db
+      .query("customers")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .unique();
+    if (!caller?.isAdmin) throw new Error("Not admin");
+    await ctx.db.patch(args.vehicleId, { assignedDriverId: args.driverId });
     return null;
   },
 });

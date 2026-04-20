@@ -35,23 +35,29 @@ const schema = defineSchema({
     routeId: v.optional(v.id("routes")),
     vehicleId: v.optional(v.id("vehicles")),
     isAdmin: v.optional(v.boolean()),
-    // NEW: Role for warehouse managers / employees
+    // Role for warehouse managers / employees / drivers
     role: v.optional(v.union(
       v.literal("customer"),
       v.literal("warehouse_manager"),
       v.literal("employee"),
+      v.literal("driver"),
     )),
-    // NEW: Who manages this employee (warehouse manager's customer ID)
+    // Who manages this employee (warehouse manager's customer ID)
     managedBy: v.optional(v.id("customers")),
-    // NEW: Warehouse name for managers
+    // Warehouse name for managers
     warehouseName: v.optional(v.string()),
+    // Features assigned to this user (driver feature gating)
+    allowedFeatures: v.optional(v.array(v.string())),
+    // Assigned vehicle for drivers
+    assignedVehicleId: v.optional(v.id("vehicles")),
   })
     .index("by_userId", ["userId"])
     .index("by_email", ["email"])
     .index("by_status", ["status"])
     .index("by_routeId", ["routeId"])
     .index("by_plan", ["plan"])
-    .index("by_managedBy", ["managedBy"]),
+    .index("by_managedBy", ["managedBy"])
+    .index("by_role", ["role"]),
 
   // Fleet vehicles
   vehicles: defineTable({
@@ -67,8 +73,13 @@ const schema = defineSchema({
     currentLat: v.optional(v.number()),
     currentLng: v.optional(v.number()),
     lastLocationUpdate: v.optional(v.number()),
+    // Admin toggle: share this vehicle's location with riders
+    shareLocationWithRiders: v.optional(v.boolean()),
+    // Assigned driver
+    assignedDriverId: v.optional(v.id("customers")),
   })
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_assignedDriverId", ["assignedDriverId"]),
 
   // Routes
   routes: defineTable({
@@ -91,10 +102,13 @@ const schema = defineSchema({
       lng: v.number(),
       order: v.number(),
     }))),
+    // Assigned driver for this route
+    assignedDriverId: v.optional(v.id("customers")),
   })
     .index("by_status", ["status"])
     .index("by_serviceArea", ["serviceArea"])
-    .index("by_vehicleId", ["vehicleId"]),
+    .index("by_vehicleId", ["vehicleId"])
+    .index("by_assignedDriverId", ["assignedDriverId"]),
 
   // Quote requests
   quotes: defineTable({
@@ -175,6 +189,7 @@ const schema = defineSchema({
       v.literal("customer"),
       v.literal("warehouse_manager"),
       v.literal("employee"),
+      v.literal("driver"),
     ),
     invitedBy: v.id("customers"),
     expiresAt: v.number(),
