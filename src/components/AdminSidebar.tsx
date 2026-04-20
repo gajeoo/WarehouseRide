@@ -8,6 +8,7 @@ import {
   LogOut,
   MessageSquare,
   Settings,
+  Truck,
   UserPlus,
   Users,
 } from "lucide-react";
@@ -40,6 +41,7 @@ const adminNavItems = [
   { href: "/admin", label: "Dashboard", icon: BarChart3 },
   { href: "/admin/customers", label: "Customers", icon: Users },
   { href: "/admin/employees", label: "Employees", icon: UserPlus },
+  { href: "/admin/drivers", label: "Drivers", icon: Truck },
   { href: "/admin/fleet", label: "Fleet & Routes", icon: Car },
   { href: "/admin/quotes", label: "Quotes", icon: FileText },
   { href: "/admin/chat", label: "Chat / Support", icon: MessageSquare },
